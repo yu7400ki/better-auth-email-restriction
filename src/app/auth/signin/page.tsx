@@ -12,16 +12,39 @@ type CurrentSession = {
     session: Session;
 };
 
+type AuthState = {
+  state: "loading";
+} | {
+  state: "authenticated";
+  session: CurrentSession;
+} | {
+  state: "unauthenticated";
+};
+
 export default function SignInPage() {
-  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [authState, setAuthState] = useState<AuthState>({ state: "loading" });
 
   useEffect(() => {
+    if (authState.state !== "loading") return;
+
     const checkSession = async () => {
-      const {data: currentSession} = await authClient.getSession();
-      setSession(currentSession);
+      try {
+        const { data: currentSession } = await authClient.getSession();
+        if (currentSession) {
+          setAuthState({
+            state: "authenticated",
+            session: currentSession,
+          });
+        } else {
+          setAuthState({ state: "unauthenticated" });
+        }
+      } catch (error) {
+        console.error("セッションの取得に失敗しました:", error);
+        setAuthState({ state: "unauthenticated" });
+      }
     };
     checkSession();
-  }, []);
+  }, [authState]);
 
   const handleGoogleSignIn = async () => {
     await authClient.signIn.social({
@@ -31,7 +54,7 @@ export default function SignInPage() {
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    setSession(null);
+    setAuthState({ state: "unauthenticated" });
   };
 
   return (
@@ -44,14 +67,18 @@ export default function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {session?.user ? (
+          {authState.state === "loading" ? (
+            <div className="text-center text-sm text-muted-foreground">
+              読み込み中...
+            </div>
+          ) : authState.state === "authenticated" ? (
             <div className="space-y-4">
               <div className="text-sm">
-                <p>ログイン中: {session.user.email}</p>
-                <p>名前: {session.user.name}</p>
-                {session.user.image && (
+                <p>ログイン中: {authState.session.user.email}</p>
+                <p>名前: {authState.session.user.name}</p>
+                {authState.session.user.image && (
                   <img
-                    src={session.user.image}
+                    src={authState.session.user.image}
                     alt="プロフィール画像"
                     className="w-10 h-10 rounded-full mt-2"
                   />
