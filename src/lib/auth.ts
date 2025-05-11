@@ -21,7 +21,7 @@ export const auth = betterAuth({
                     // メールアドレスのドメインと検証状態をチェック
                     if (!(user.emailVerified && user.email?.endsWith("@iniad.org"))) {
                         throw new APIError("BAD_REQUEST", {
-                            message: "このドメインのメールアドレスは使用できません",
+                            message: "Email must end with @iniad.com",
                         });
                     }
                 },
